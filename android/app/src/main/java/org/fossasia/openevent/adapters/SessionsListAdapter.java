@@ -68,24 +68,6 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
         this.copyOfSessions = sessions;
     }
 
-    public void filter(String constraint) {
-        final String query = constraint.toLowerCase(Locale.getDefault());
-
-        List<Session> filteredSessionsList = Observable.fromIterable(copyOfSessions)
-                .filter(session -> session.getTitle()
-                        .toLowerCase(Locale.getDefault())
-                        .contains(query))
-                .toList().blockingGet();
-
-        Timber.d("Filtering done total results %d", filteredSessionsList.size());
-
-        if (filteredSessionsList.isEmpty()) {
-            Timber.e("No results published. There is an error in query. Check " + getClass().getName() + " filter!");
-        }
-
-        animateTo(filteredSessionsList);
-    }
-
     public void setColor(int color) {
         this.color = color;
         notifyDataSetChanged();
