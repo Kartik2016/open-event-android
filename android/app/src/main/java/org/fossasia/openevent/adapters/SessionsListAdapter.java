@@ -32,7 +32,6 @@ import org.threeten.bp.ZonedDateTime;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import io.reactivex.Observable;
 import timber.log.Timber;
@@ -52,39 +51,18 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
     private static final int speakerWiseSessionList = 2;
 
     private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
-    private List<Session> copyOfSessions = new ArrayList<>();
 
     private int color;
 
     public SessionsListAdapter(Context context, List<Session> sessions, int type) {
         super(sessions);
-        this.copyOfSessions = sessions;
+
         this.context = context;
         this.color = ContextCompat.getColor(context, R.color.color_primary);
         this.type = type;
     }
 
-    public void setCopyOfSessions(List<Session> sessions) {
-        this.copyOfSessions = sessions;
-    }
 
-    public void filter(String constraint) {
-        final String query = constraint.toLowerCase(Locale.getDefault());
-
-        List<Session> filteredSessionsList = Observable.fromIterable(copyOfSessions)
-                .filter(session -> session.getTitle()
-                        .toLowerCase(Locale.getDefault())
-                        .contains(query))
-                .toList().blockingGet();
-
-        Timber.d("Filtering done total results %d", filteredSessionsList.size());
-
-        if (filteredSessionsList.isEmpty()) {
-            Timber.e("No results published. There is an error in query. Check " + getClass().getName() + " filter!");
-        }
-
-        animateTo(filteredSessionsList);
-    }
 
     public void setColor(int color) {
         this.color = color;
