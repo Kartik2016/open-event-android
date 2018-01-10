@@ -131,7 +131,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
             sessions.clear();
             sessions.addAll(sessionsList);
             setUpcomingSession();
-
+            
             sessionsListAdapter.notifyDataSetChanged();
 
             handleVisibility();

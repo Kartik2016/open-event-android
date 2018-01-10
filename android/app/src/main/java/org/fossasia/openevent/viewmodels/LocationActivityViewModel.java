@@ -8,7 +8,6 @@ import org.fossasia.openevent.data.Session;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 
 
-
 import java.util.List;
 import java.util.Locale;
 
