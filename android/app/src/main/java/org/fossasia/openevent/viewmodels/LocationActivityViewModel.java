@@ -71,6 +71,6 @@ public class LocationActivityViewModel extends ViewModel {
             if (filteredSessions.isEmpty()) {
                 Timber.e("No results published. There is an error in query. Check " + getClass().getName() + " filter!");
             }
-        });
+        }).dispose();
     }
 }
