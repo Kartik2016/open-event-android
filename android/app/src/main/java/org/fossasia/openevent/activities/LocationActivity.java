@@ -1,6 +1,8 @@
 package org.fossasia.openevent.activities;
 
 import android.app.Dialog;
+
+import android.arch.lifecycle.ViewModelProviders;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -28,10 +30,11 @@ import org.fossasia.openevent.OpenEventApp;
 import org.fossasia.openevent.R;
 import org.fossasia.openevent.adapters.SessionsListAdapter;
 import org.fossasia.openevent.data.Session;
-import org.fossasia.openevent.dbutils.RealmDataRepository;
+
 import org.fossasia.openevent.utils.ConstantStrings;
 import org.fossasia.openevent.utils.DateConverter;
 import org.fossasia.openevent.utils.Utils;
+import org.fossasia.openevent.viewmodels.LocationActivityViewModel;
 import org.threeten.bp.ZonedDateTime;
 
 import java.util.ArrayList;
@@ -54,6 +57,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     private Dialog upcomingDialogBox;
 
     private List<Session> sessions = new ArrayList<>();
+    private LocationActivityViewModel locationActivityViewModel;
 
     private static final int locationWiseSessionList = 1;
 
@@ -75,7 +79,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     private SearchView searchView;
     private Menu menu;
 
-    private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
+
     private TextView upcomingSessionText;
     private TextView upcomingSessionTitle;
     private View upcomingSessionDetails;
@@ -94,6 +98,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
         if (savedInstanceState != null && savedInstanceState.getString(SEARCH) != null) {
             searchText = savedInstanceState.getString(SEARCH);
         }
+        locationActivityViewModel = ViewModelProviders.of(this).get(LocationActivityViewModel.class);
     }
 
     @Override
@@ -122,18 +127,16 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     }
 
     private void loadData() {
-        realmRepo.getSessionsByLocation(location)
-                .addChangeListener((sessions, orderedCollectionChangeSet) -> {
-                    this.sessions.clear();
-                    this.sessions.addAll(sessions);
+        searchText = locationActivityViewModel.getSearchText();
+        locationActivityViewModel.getSessionByLocation(location,searchText).observe(this, sessionsList -> {
+            sessions.clear();
+            sessions.addAll(sessionsList);
+            setUpcomingSession();
 
-                    setUpcomingSession();
-                    sessionsListAdapter.setCopyOfSessions(sessions);
-                    sessionsListAdapter.notifyDataSetChanged();
-                    if (!Utils.isEmpty(searchText))
-                        sessionsListAdapter.filter(searchText);
-                    handleVisibility();
-                });
+            sessionsListAdapter.notifyDataSetChanged();
+
+            handleVisibility();
+        });
     }
 
     public void setUpcomingSessionsDialog() {
@@ -189,7 +192,6 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
         }
     }
 
-
     @Override
     protected int getLayoutResource() {
         return R.layout.activity_locations;
@@ -197,8 +199,8 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
 
     @Override
     public void onSaveInstanceState(Bundle bundle) {
-        if (searchView != null) {
-            bundle.putString(SEARCH, searchText);
+        if (searchView != null && locationActivityViewModel != null) {
+            locationActivityViewModel.setSearchText(searchText);
         }
         super.onSaveInstanceState(bundle);
     }
@@ -280,8 +282,10 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     @Override
     public boolean onQueryTextChange(final String query) {
         searchText = query;
-        sessionsListAdapter.filter(searchText);
-        Utils.displayNoResults(noResultSessionsView, sessionRecyclerView, noSessionsView, sessionsListAdapter.getItemCount());
+        loadData();
+        sessionsListAdapter.animateTo(sessions);
+        Utils.displayNoResults(noResultSessionsView, sessionRecyclerView, noSessionsView,
+                sessionsListAdapter.getItemCount());
 
         return false;
     }
