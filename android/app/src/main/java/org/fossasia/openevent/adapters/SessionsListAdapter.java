@@ -32,7 +32,7 @@ import org.threeten.bp.ZonedDateTime;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Locale;
 import io.reactivex.Observable;
 import timber.log.Timber;
 
@@ -61,11 +61,11 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
         this.color = ContextCompat.getColor(context, R.color.color_primary);
         this.type = type;
     }
-    
+
     public void setCopyOfSessions(List<Session> sessions) {
         this.copyOfSessions = sessions;
     }
-    
+
     public void filter(String constraint) {
         final String query = constraint.toLowerCase(Locale.getDefault());
 
