@@ -2,9 +2,11 @@ package org.fossasia.openevent.viewmodels;
 
 import android.arch.lifecycle.LiveData;
 import android.arch.lifecycle.MutableLiveData;
+import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
 import org.fossasia.openevent.data.Session;
+import org.fossasia.openevent.dbutils.LiveRealmData;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 
 
@@ -13,15 +15,14 @@ import java.util.Locale;
 
 
 import io.reactivex.Observable;
-import io.realm.RealmResults;
+
 import timber.log.Timber;
 
 public class LocationActivityViewModel extends ViewModel {
 
     private RealmDataRepository realmRepo;
-    private MutableLiveData<List<Session>> session;
-    private MutableLiveData<List<Session>> filteredSession;
-    private RealmResults<Session> sessionRealmResult;
+    private LiveData<List<Session>> session;
+    private LiveData<List<Session>> filteredSession;
     private String searchText = "";
 
     public LocationActivityViewModel() {
@@ -30,16 +31,13 @@ public class LocationActivityViewModel extends ViewModel {
 
     public LiveData<List<Session>> getSessionByLocation(String location, String searchText) {
         setSearchText(searchText);
-
         if (filteredSession == null)
             filteredSession = new MutableLiveData<>();
         if (session == null) {
             session = new MutableLiveData<>();
-            sessionRealmResult = realmRepo.getSessionsByLocation(location);
-            sessionRealmResult.addChangeListener((sessions, orderedCollectionChangeSet) -> {
-                session.setValue(sessions);
-                getFilteredSessions();
-            });
+            LiveRealmData<Session> sessionLiveRealmData = RealmDataRepository.asLiveData(realmRepo.getSessionsByLocation(location));
+            session= Transformations.map(sessionLiveRealmData, input -> input);
+            getFilteredSessions();
         } else {
             getFilteredSessions();
         }
@@ -56,7 +54,6 @@ public class LocationActivityViewModel extends ViewModel {
 
     @Override
     protected void onCleared() {
-        sessionRealmResult.removeAllChangeListeners();
         super.onCleared();
     }
 
