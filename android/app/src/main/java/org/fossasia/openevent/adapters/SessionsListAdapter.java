@@ -33,6 +33,7 @@ import org.threeten.bp.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
 import io.reactivex.Observable;
 import timber.log.Timber;
 
@@ -52,7 +53,7 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
 
     private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
     private List<Session> copyOfSessions = new ArrayList<>();
-    
+
     private int color;
 
     public SessionsListAdapter(Context context, List<Session> sessions, int type) {
