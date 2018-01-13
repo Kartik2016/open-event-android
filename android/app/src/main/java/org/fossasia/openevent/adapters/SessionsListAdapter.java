@@ -74,14 +74,13 @@ public class SessionsListAdapter extends BaseRVAdapter<Session, SessionViewHolde
                         .toLowerCase(Locale.getDefault())
                         .contains(query))
                 .toList().blockingGet();
- 
- 
+        
         Timber.d("Filtering done total results %d", filteredSessionsList.size());
 
         if (filteredSessionsList.isEmpty()) {
             Timber.e("No results published. There is an error in query. Check " + getClass().getName() + " filter!");
         }
-
+   
         animateTo(filteredSessionsList);
     }
 
