@@ -22,7 +22,7 @@ public class LocationActivityViewModel extends ViewModel {
 
     private RealmDataRepository realmRepo;
     private LiveData<List<Session>> session;
-    private LiveData<List<Session>> filteredSession;
+    private MutableLiveData<List<Session>> filteredSession;
     private String searchText = "";
 
     public LocationActivityViewModel() {
