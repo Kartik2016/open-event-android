@@ -1,7 +1,6 @@
 package org.fossasia.openevent.viewmodels;
 
 import android.arch.lifecycle.LiveData;
-import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
 import org.fossasia.openevent.data.Session;
@@ -17,7 +16,6 @@ import io.reactivex.functions.Predicate;
 public class LocationActivityViewModel extends ViewModel {
 
     private FilterableRealmLiveData<Session> filterableRealmLiveData;
-    private LiveData<List<Session>> filteredSessions;
     private RealmDataRepository realmRepo;
     private String searchText = "";
 
@@ -25,21 +23,18 @@ public class LocationActivityViewModel extends ViewModel {
         realmRepo = RealmDataRepository.getDefaultInstance();
     }
 
-    public LiveData<List<Session>> getSessionByLocation(String location,String searchText) {
+    public LiveData<List<Session>> getSessionByLocation(String location, String searchText) {
         if(filterableRealmLiveData == null)
             filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(realmRepo.getSessionsByLocation(location));
-        if (!this.searchText.equals(searchText) || filteredSessions == null) {
+        if (!this.searchText.equals(searchText)) {
             setSearchText(searchText);
             final String query = searchText.toLowerCase(Locale.getDefault());
             Predicate<Session> predicate = session -> session.getName()
                     .toLowerCase(Locale.getDefault())
                     .contains(query);
             filterableRealmLiveData.filter(predicate);
-            if (filteredSessions == null) {
-                filteredSessions = Transformations.map(filterableRealmLiveData, input -> input);
-            }
         }
-        return filteredSessions;
+        return filterableRealmLiveData;
     }
 
     public String getSearchText() {
