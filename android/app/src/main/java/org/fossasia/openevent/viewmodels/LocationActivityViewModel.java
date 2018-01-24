@@ -27,7 +27,7 @@ public class LocationActivityViewModel extends ViewModel {
 
     public LiveData<List<Session>> getSessionByLocation(String location,String searchText) {
         if(filterableRealmLiveData == null)
-            filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(realmRepo.getSessionByLocation(location));
+            filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(realmRepo.getSessionsByLocation(location));
         if (!this.searchText.equals(searchText) || filteredSessions == null) {
             setSearchText(searchText);
             final String query = searchText.toLowerCase(Locale.getDefault());
