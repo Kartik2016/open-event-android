@@ -1,36 +1,33 @@
 package org.fossasia.openevent.viewmodels;
 
 import android.arch.lifecycle.LiveData;
-import android.arch.lifecycle.MutableLiveData;
 import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
 import org.fossasia.openevent.data.Session;
 import org.fossasia.openevent.dbutils.FilterableRealmLiveData;
-import org.fossasia.openevent.dbutils.LiveRealmData;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 
 
 import java.util.List;
 import java.util.Locale;
 
-
-import io.reactivex.Observable;
-
 import io.reactivex.functions.Predicate;
-import timber.log.Timber;
 
 public class LocationActivityViewModel extends ViewModel {
 
     private FilterableRealmLiveData<Session> filterableRealmLiveData;
     private LiveData<List<Session>> filteredSessions;
+    private RealmDataRepository realmRepo;
     private String searchText = "";
 
     public LocationActivityViewModel() {
-        filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(RealmDataRepository.getDefaultInstance().getSessionsByLocation());
+        realmRepo = RealmDataRepository.getDefaultInstance();
     }
 
-    public LiveData<List<Session>> getSessionByLocation(String searchText) {
+    public LiveData<List<Session>> getSessionByLocation(String location,String searchText) {
+        if(filterableRealmLiveData == null)
+            filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(realmRepo.getSessionByLocation(location));
         if (!this.searchText.equals(searchText) || filteredSessions == null) {
             setSearchText(searchText);
             final String query = searchText.toLowerCase(Locale.getDefault());

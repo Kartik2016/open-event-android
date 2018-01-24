@@ -128,7 +128,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     }
 
     private void loadData() {
-        locationActivityViewModel.getSessionByLocation(searchText).observe(this, sessionsList -> {
+        locationActivityViewModel.getSessionByLocation(location, searchText).observe(this, sessionsList -> {
             sessions.clear();
             sessions.addAll(sessionsList);
             sessionsListAdapter.setCopyOfSessions(sessionsList);
