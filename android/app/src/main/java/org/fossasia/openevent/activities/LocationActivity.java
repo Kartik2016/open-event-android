@@ -99,6 +99,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
             searchText = savedInstanceState.getString(SEARCH);
         }
         locationActivityViewModel = ViewModelProviders.of(this).get(LocationActivityViewModel.class);
+        searchText = locationActivityViewModel.getSearchText();
     }
 
     @Override
@@ -127,14 +128,12 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     }
 
     private void loadData() {
-        searchText = locationActivityViewModel.getSearchText();
-        locationActivityViewModel.getSessionByLocation(location,searchText).observe(this, sessionsList -> {
+        locationActivityViewModel.getSessionByLocation(searchText).observe(this, sessionsList -> {
             sessions.clear();
             sessions.addAll(sessionsList);
-            setUpcomingSession();
-
+            sessionsListAdapter.setCopyOfSessions(sessionsList);
             sessionsListAdapter.notifyDataSetChanged();
-
+            setUpcomingSession();
             handleVisibility();
         });
     }

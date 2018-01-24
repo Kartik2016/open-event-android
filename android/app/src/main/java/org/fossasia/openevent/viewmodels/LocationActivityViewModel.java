@@ -6,6 +6,7 @@ import android.arch.lifecycle.Transformations;
 import android.arch.lifecycle.ViewModel;
 
 import org.fossasia.openevent.data.Session;
+import org.fossasia.openevent.dbutils.FilterableRealmLiveData;
 import org.fossasia.openevent.dbutils.LiveRealmData;
 import org.fossasia.openevent.dbutils.RealmDataRepository;
 
@@ -16,32 +17,32 @@ import java.util.Locale;
 
 import io.reactivex.Observable;
 
+import io.reactivex.functions.Predicate;
 import timber.log.Timber;
 
 public class LocationActivityViewModel extends ViewModel {
 
-    private RealmDataRepository realmRepo;
-    private LiveData<List<Session>> session;
-    private MutableLiveData<List<Session>> filteredSession;
+    private FilterableRealmLiveData<Session> filterableRealmLiveData;
+    private LiveData<List<Session>> filteredSessions;
     private String searchText = "";
 
     public LocationActivityViewModel() {
-        realmRepo = RealmDataRepository.getDefaultInstance();
+        filterableRealmLiveData = RealmDataRepository.asFilterableLiveData(RealmDataRepository.getDefaultInstance().getSessionsByLocation());
     }
 
-    public LiveData<List<Session>> getSessionByLocation(String location, String searchText) {
-        setSearchText(searchText);
-        if (filteredSession == null)
-            filteredSession = new MutableLiveData<>();
-        if (session == null) {
-            session = new MutableLiveData<>();
-            LiveRealmData<Session> sessionLiveRealmData = RealmDataRepository.asLiveData(realmRepo.getSessionsByLocation(location));
-            session= Transformations.map(sessionLiveRealmData, input -> input);
-            getFilteredSessions();
-        } else {
-            getFilteredSessions();
+    public LiveData<List<Session>> getSessionByLocation(String searchText) {
+        if (!this.searchText.equals(searchText) || filteredSessions == null) {
+            setSearchText(searchText);
+            final String query = searchText.toLowerCase(Locale.getDefault());
+            Predicate<Session> predicate = session -> session.getName()
+                    .toLowerCase(Locale.getDefault())
+                    .contains(query);
+            filterableRealmLiveData.filter(predicate);
+            if (filteredSessions == null) {
+                filteredSessions = Transformations.map(filterableRealmLiveData, input -> input);
+            }
         }
-        return filteredSession;
+        return filteredSessions;
     }
 
     public String getSearchText() {
@@ -52,25 +53,4 @@ public class LocationActivityViewModel extends ViewModel {
         this.searchText = searchText;
     }
 
-    @Override
-    protected void onCleared() {
-        super.onCleared();
-    }
-
-    private void getFilteredSessions() {
-        final String query = searchText.toLowerCase(Locale.getDefault());
-
-        Observable.fromIterable(session.getValue())
-                .filter(session -> session.getTitle()
-                        .toLowerCase(Locale.getDefault())
-                        .contains(query))
-                .toList().subscribe(filteredSessions -> {
-            filteredSession.setValue(filteredSessions);
-            Timber.d("Filtering done total results %d", filteredSessions.size());
-
-            if (filteredSessions.isEmpty()) {
-                Timber.e("No results published. There is an error in query. Check " + getClass().getName() + " filter!");
-            }
-        }).dispose();
-    }
 }
