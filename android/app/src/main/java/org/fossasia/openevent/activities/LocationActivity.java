@@ -6,6 +6,7 @@ import android.arch.lifecycle.ViewModelProviders;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
@@ -30,9 +31,12 @@ import org.fossasia.openevent.OpenEventApp;
 import org.fossasia.openevent.R;
 import org.fossasia.openevent.adapters.SessionsListAdapter;
 import org.fossasia.openevent.data.Session;
-
+import org.fossasia.openevent.dbutils.RealmDataRepository;
+import org.fossasia.openevent.listeners.BookmarkStatus;
+import org.fossasia.openevent.listeners.OnBookmarkSelectedListener;
 import org.fossasia.openevent.utils.ConstantStrings;
 import org.fossasia.openevent.utils.DateConverter;
+import org.fossasia.openevent.utils.SnackbarUtil;
 import org.fossasia.openevent.utils.Utils;
 import org.fossasia.openevent.viewmodels.LocationActivityViewModel;
 import org.threeten.bp.ZonedDateTime;
@@ -46,7 +50,7 @@ import butterknife.BindView;
  * User: MananWason
  * Date: 8/18/2015
  */
-public class LocationActivity extends BaseActivity implements SearchView.OnQueryTextListener {
+public class LocationActivity extends BaseActivity implements SearchView.OnQueryTextListener, OnBookmarkSelectedListener {
     final private String SEARCH = "searchText";
 
     private SessionsListAdapter sessionsListAdapter;
@@ -118,6 +122,7 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
         gridLayoutManager = new GridLayoutManager(this, spanCount);
         sessionRecyclerView.setLayoutManager(gridLayoutManager);
         sessionsListAdapter = new SessionsListAdapter(this, sessions, locationWiseSessionList);
+        sessionsListAdapter.setOnBookmarkSelectedListener(this);
         sessionRecyclerView.setAdapter(sessionsListAdapter);
         sessionRecyclerView.scrollToPosition(SessionsListAdapter.listPosition);
         sessionRecyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -141,17 +146,12 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     public void setUpcomingSessionsDialog() {
         upcomingDialogBox = new Dialog(this);
         upcomingDialogBox.setContentView(R.layout.upcoming_dialogbox);
-        trackImageIcon = (ImageView) upcomingDialogBox.findViewById(R.id.track_image_drawable);
-        upcomingSessionText = (TextView) upcomingDialogBox.findViewById(R.id.upcoming_session_textview);
-        upcomingSessionTitle = (TextView) upcomingDialogBox.findViewById(R.id.upcoming_Session_title);
-        Button dialogButton = (Button) upcomingDialogBox.findViewById(R.id.upcoming_button);
-        upcomingSessionDetails = (View) upcomingDialogBox.findViewById(R.id.upcoming_session_details);
-        dialogButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                upcomingDialogBox.dismiss();
-            }
-        });
+        trackImageIcon = upcomingDialogBox.findViewById(R.id.track_image_drawable);
+        upcomingSessionText = upcomingDialogBox.findViewById(R.id.upcoming_session_textview);
+        upcomingSessionTitle = upcomingDialogBox.findViewById(R.id.upcoming_Session_title);
+        Button dialogButton = upcomingDialogBox.findViewById(R.id.upcoming_button);
+        upcomingSessionDetails = upcomingDialogBox.findViewById(R.id.upcoming_session_details);
+        dialogButton.setOnClickListener(view -> upcomingDialogBox.dismiss());
     }
 
     public void setUpcomingSession() {
@@ -273,6 +273,12 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
     }
 
     @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        sessionsListAdapter.clearOnBookmarkSelectedListener();
+    }
+
+    @Override
     public boolean onQueryTextSubmit(String query) {
         searchView.clearFocus();
         return false;
@@ -288,4 +294,12 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
 
         return false;
     }
+
+    @Override
+    public void showSnackbar(BookmarkStatus bookmarkStatus) {
+        Snackbar snackbar = Snackbar.make(sessionRecyclerView, SnackbarUtil.getMessageResource(bookmarkStatus), Snackbar.LENGTH_LONG);
+        SnackbarUtil.setSnackbarAction(this, snackbar, bookmarkStatus)
+                .show();
+    }
+  
 }

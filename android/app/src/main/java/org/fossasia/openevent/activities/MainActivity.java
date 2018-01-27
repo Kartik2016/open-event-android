@@ -1,7 +1,6 @@
 package org.fossasia.openevent.activities;
 
 import android.app.Dialog;
-import android.app.DialogFragment;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -80,7 +79,6 @@ import org.fossasia.openevent.fragments.ScheduleFragment;
 import org.fossasia.openevent.fragments.SpeakersListFragment;
 import org.fossasia.openevent.fragments.SponsorsFragment;
 import org.fossasia.openevent.fragments.TracksFragment;
-import org.fossasia.openevent.fragments.ZoomableImageDialogFragment;
 import org.fossasia.openevent.modules.OnImageZoomListener;
 import org.fossasia.openevent.utils.AuthUtil;
 import org.fossasia.openevent.utils.CommonTaskLoop;
@@ -91,6 +89,7 @@ import org.fossasia.openevent.utils.NetworkUtils;
 import org.fossasia.openevent.utils.SharedPreferencesUtil;
 import org.fossasia.openevent.utils.SmoothActionBarDrawerToggle;
 import org.fossasia.openevent.utils.Utils;
+import org.fossasia.openevent.utils.ZoomableImageUtil;
 import org.fossasia.openevent.widget.DialogFactory;
 
 import java.io.IOException;
@@ -111,7 +110,7 @@ import io.realm.RealmList;
 import io.realm.RealmResults;
 import timber.log.Timber;
 
-public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommentsDialogListener, OnImageZoomListener {
+public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommentsDialogListener, OnImageZoomListener, AboutFragment.OnMapSelectedListener {
 
     private static final String STATE_FRAGMENT = "stateFragment";
     private static final String NAV_ITEM = "navItem";
@@ -126,6 +125,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
     private boolean isAuthEnabled = SharedPreferencesUtil.getBoolean(ConstantStrings.IS_AUTH_ENABLED, false);
     private boolean customTabsSupported;
     private int currentMenuItemId;
+    private boolean isMapFragment;
 
     @BindView(R.id.toolbar) Toolbar toolbar;
     @BindView(R.id.nav_view) NavigationView navigationView;
@@ -143,6 +143,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
     private CompositeDisposable disposable;
     private RealmDataRepository realmRepo = RealmDataRepository.getDefaultInstance();
     private Event event; // Future Event, stored to remove listeners
+    private AboutFragment.OnMapSelectedListener onMapSelectedListener = value -> isMapFragment = value;
 
     public static Intent createLaunchFragmentIntent(Context context) {
         return new Intent(context, MainActivity.class)
@@ -293,7 +294,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
 
     private void setUpNavDrawer() {
         setUpUserProfileMenu();
-        headerView = (ImageView) navigationView.getHeaderView(0).findViewById(R.id.headerDrawer);
+        headerView = navigationView.getHeaderView(0).findViewById(R.id.headerDrawer);
         if (toolbar != null && !isTwoPane) {
             final ActionBar ab = getSupportActionBar();
             if(ab == null) return;
@@ -522,7 +523,7 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
 
         switch (menuItemId) {
             case R.id.nav_home:
-                replaceFragment(new AboutFragment(), R.string.menu_home);
+                replaceFragment(AboutFragment.newInstance(onMapSelectedListener), R.string.menu_home);
                 break;
             case R.id.nav_tracks:
                 replaceFragment(new TracksFragment(), R.string.menu_tracks);
@@ -570,19 +571,24 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
 
     @Override
     public void onBackPressed() {
+        Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.content_frame);
+
         if (!isTwoPane && drawerLayout.isDrawerOpen(GravityCompat.START)) {
             drawerLayout.closeDrawer(GravityCompat.START);
         } else if (atHome) {
             if (backPressedOnce) {
                 super.onBackPressed();
-            } else {
+            } else if (fragment instanceof AboutFragment) {
                 backPressedOnce = true;
                 Snackbar snackbar = Snackbar.make(mainFrame, R.string.press_back_again, 2000);
                 snackbar.show();
                 new Handler().postDelayed(() -> backPressedOnce = false, 2000);
+            } else if (isMapFragment) {
+                replaceFragment(AboutFragment.newInstance(onMapSelectedListener), R.string.menu_home);
+                addShadowToAppBar(true);
             }
         } else {
-            replaceFragment(new AboutFragment(), R.string.menu_home);
+            replaceFragment(AboutFragment.newInstance(onMapSelectedListener), R.string.menu_home);
             navigationView.setCheckedItem(R.id.nav_home);
             addShadowToAppBar(true);
         }
@@ -696,7 +702,8 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
     public void handleResponseEvent(RetrofitResponseEvent responseEvent) {
         Integer statusCode = responseEvent.getStatusCode();
         if (statusCode.equals(404)) {
-            showErrorDialog("HTTP Error", statusCode + "Api Not Found");
+            showErrorDialog(getResources().getString(R.string.http_error), statusCode + "\n" + getResources().getString(R.string.api_not_found));
+            downloadFromAssets();
         }
     }
 
@@ -879,12 +886,11 @@ public class MainActivity extends BaseActivity implements FeedAdapter.OpenCommen
     }
 
     @Override
+    public void onMapSelected(boolean value) {
+        //it is used to check if the maps fragment is selected
+    }
+
     public void onZoom(String imageUri) {
-        ZoomableImageDialogFragment zoomableImageDialogFragment = new ZoomableImageDialogFragment();
-        zoomableImageDialogFragment.setStyle(DialogFragment.STYLE_NO_TITLE, 0);
-        Bundle bundle = new Bundle();
-        bundle.putString(ConstantStrings.IMAGE_ZOOM_KEY, imageUri);
-        zoomableImageDialogFragment.setArguments(bundle);
-        zoomableImageDialogFragment.show(fragmentManager, "ZoomableImage");
+        ZoomableImageUtil.showZoomableImageDialogFragment(fragmentManager, imageUri);
     }
 }
