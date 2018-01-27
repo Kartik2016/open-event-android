@@ -29,7 +29,7 @@ public class LocationActivityViewModel extends ViewModel {
         if (!this.searchText.equals(searchText)) {
             setSearchText(searchText);
             final String query = searchText.toLowerCase(Locale.getDefault());
-            Predicate<Session> predicate = session -> session.getName()
+            Predicate<Session> predicate = session -> session.getTitle()
                     .toLowerCase(Locale.getDefault())
                     .contains(query);
             filterableRealmLiveData.filter(predicate);
