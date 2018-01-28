@@ -136,7 +136,6 @@ public class LocationActivity extends BaseActivity implements SearchView.OnQuery
         locationActivityViewModel.getSessionByLocation(location, searchText).observe(this, sessionsList -> {
             sessions.clear();
             sessions.addAll(sessionsList);
-            sessionsListAdapter.setCopyOfSessions(sessionsList);
             sessionsListAdapter.notifyDataSetChanged();
             setUpcomingSession();
             handleVisibility();
