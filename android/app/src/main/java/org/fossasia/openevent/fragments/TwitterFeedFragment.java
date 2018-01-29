@@ -1,5 +1,6 @@
 package org.fossasia.openevent.fragments;
 
+
 import android.app.ProgressDialog;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
@@ -14,14 +15,14 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import org.fossasia.openevent.R;
-import org.fossasia.openevent.adapters.FeedAdapter;
-import org.fossasia.openevent.data.facebook.FeedItem;
+import org.fossasia.openevent.adapters.TwitterFeedAdapter;
+import org.fossasia.openevent.data.twitter.TwitterFeedItem;
 import org.fossasia.openevent.modules.OnImageZoomListener;
 import org.fossasia.openevent.utils.ConstantStrings;
 import org.fossasia.openevent.utils.NetworkUtils;
 import org.fossasia.openevent.utils.SharedPreferencesUtil;
 import org.fossasia.openevent.utils.Views;
-import org.fossasia.openevent.viewmodels.FeedFragmentViewModel;
+import org.fossasia.openevent.viewmodels.TwitterFeedFragmentViewModel;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -33,44 +34,40 @@ import timber.log.Timber;
 import static org.fossasia.openevent.utils.AuthUtil.INVALID;
 import static org.fossasia.openevent.utils.AuthUtil.VALID;
 
-/**
- * Created by rohanagarwal94 on 10/6/17.
- */
-public class FeedFragment extends BaseFragment {
+public class TwitterFeedFragment extends BaseFragment {
 
-    private FeedAdapter feedAdapter;
-    private ProgressDialog downloadProgressDialog;
-    private FeedFragmentViewModel feedFragmentViewModel;
-    private List<FeedItem> feedItems;
-    private FeedAdapter.OpenCommentsDialogListener openCommentsDialogListener;
+    private TwitterFeedAdapter twitterFeedAdapter;
     private OnImageZoomListener onImageZoomListener;
+    private List<TwitterFeedItem> twitterFeedItems;
+    private TwitterFeedFragmentViewModel twitterFeedFragmentViewModel;
+    private ProgressDialog downloadProgressDialog;
 
-    @BindView(R.id.feed_swipe_refresh) SwipeRefreshLayout swipeRefreshLayout;
-    @BindView(R.id.feed_recycler_view) RecyclerView feedRecyclerView;
-    @BindView(R.id.txt_no_posts) TextView noFeedView;
+    @BindView(R.id.twitter_feed_swipe_refresh)
+    SwipeRefreshLayout swipeRefreshLayout;
+    @BindView(R.id.twitter_feed_recycler_view)
+    RecyclerView twitterFeedRecyclerView;
+    @BindView(R.id.twitter_txt_no_posts)
+    TextView noFeedView;
 
-    public static FeedFragment getInstance(FeedAdapter.OpenCommentsDialogListener openCommentsDialogListener,
-                                           OnImageZoomListener onImageZoomListener) {
-        FeedFragment feedFragment = new FeedFragment();
-        feedFragment.openCommentsDialogListener = openCommentsDialogListener;
-        feedFragment.onImageZoomListener = onImageZoomListener;
-
-        return feedFragment;
+    public static TwitterFeedFragment getInstance(OnImageZoomListener onImageZoomListener) {
+       TwitterFeedFragment twitterFeedFragment = new TwitterFeedFragment();
+       twitterFeedFragment.onImageZoomListener = onImageZoomListener;
+       return twitterFeedFragment;
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         setHasOptionsMenu(true);
-
         View view = super.onCreateView(inflater, container, savedInstanceState);
 
-        feedItems = new ArrayList<>();
-        feedFragmentViewModel = ViewModelProviders.of(this).get(FeedFragmentViewModel.class);
-        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getContext());
-        feedRecyclerView.setLayoutManager(mLayoutManager);
-        feedAdapter = new FeedAdapter(getContext(), openCommentsDialogListener, feedItems);
-        feedAdapter.setOnImageZoomListener(onImageZoomListener);
-        feedRecyclerView.setAdapter(feedAdapter);
+        twitterFeedItems = new ArrayList<>();
+        twitterFeedFragmentViewModel = ViewModelProviders.of(this).get(TwitterFeedFragmentViewModel.class);
+        RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getContext());
+        twitterFeedRecyclerView.setLayoutManager(layoutManager);
+        twitterFeedAdapter = new TwitterFeedAdapter(getContext(), twitterFeedItems);
+        twitterFeedAdapter.setOnImageZoomListener(onImageZoomListener);
+        twitterFeedRecyclerView.setAdapter(twitterFeedAdapter);
 
         setupProgressBar();
 
@@ -80,24 +77,22 @@ public class FeedFragment extends BaseFragment {
         downloadFeed();
 
         swipeRefreshLayout.setOnRefreshListener(this::refresh);
-
         return view;
     }
 
     private void downloadFeed() {
-        if (SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_ID, null) == null) {
+        if (SharedPreferencesUtil.getString(ConstantStrings.TWITTER_PAGE_NAME, null) == null) {
             if (downloadProgressDialog.isShowing())
                 showProgressBar(false);
             return;
         }
 
-        feedFragmentViewModel.getPosts(getContext().getResources().getString(R.string.fields),
-                getContext().getResources().getString(R.string.facebook_access_token), SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_ID, null))
+        twitterFeedFragmentViewModel.getPosts(SharedPreferencesUtil.getString(ConstantStrings.TWITTER_PAGE_NAME, null), 20, "twitter")
                 .observe(this, feedResponse -> {
                     if (feedResponse.getResponse() == VALID) {
-                        feedItems.clear();
-                        feedItems.addAll(feedResponse.getFeed().getData());
-                        feedAdapter.notifyDataSetChanged();
+                        twitterFeedItems.clear();
+                        twitterFeedItems.addAll(feedResponse.getTwitterFeed().getStatuses());
+                        twitterFeedAdapter.notifyDataSetChanged();
                         handleVisibility();
                         Views.setSwipeRefreshLayout(swipeRefreshLayout, false);
                         Timber.d("Refresh done");
@@ -113,16 +108,6 @@ public class FeedFragment extends BaseFragment {
                 });
     }
 
-    public void handleVisibility() {
-        if (!feedItems.isEmpty()) {
-            noFeedView.setVisibility(View.GONE);
-            feedRecyclerView.setVisibility(View.VISIBLE);
-        } else {
-            noFeedView.setVisibility(View.VISIBLE);
-            feedRecyclerView.setVisibility(View.GONE);
-        }
-    }
-
     private void refresh() {
         NetworkUtils.checkConnection(new WeakReference<>(getContext()), new NetworkUtils.NetworkStateReceiverListener() {
 
@@ -130,11 +115,6 @@ public class FeedFragment extends BaseFragment {
             public void networkAvailable() {
                 // Network is available
                 swipeRefreshLayout.setRefreshing(true);
-                feedFragmentViewModel.updateFBPageID(getResources().getString(R.string.facebook_access_token), SharedPreferencesUtil.getString(ConstantStrings.FACEBOOK_PAGE_ID, null))
-                        .observe(FeedFragment.this, facebookPageId -> {
-                            String id = facebookPageId.getId();
-                            SharedPreferencesUtil.putString(ConstantStrings.FACEBOOK_PAGE_ID, id);
-                        });
                 downloadFeed();
             }
 
@@ -147,6 +127,16 @@ public class FeedFragment extends BaseFragment {
                         .setAction(R.string.retry_download, view -> refresh()).show();
             }
         });
+    }
+
+    public void handleVisibility() {
+        if (!twitterFeedItems.isEmpty()) {
+            noFeedView.setVisibility(View.GONE);
+            twitterFeedRecyclerView.setVisibility(View.VISIBLE);
+        } else {
+            noFeedView.setVisibility(View.VISIBLE);
+            twitterFeedRecyclerView.setVisibility(View.GONE);
+        }
     }
 
     private void showProgressBar(boolean show) {
@@ -173,15 +163,15 @@ public class FeedFragment extends BaseFragment {
 
     @Override
     protected int getLayoutResource() {
-        return R.layout.list_feed;
+        return R.layout.list_twitter_feed;
     }
 
     @Override
-    public void onStop() {
-        super.onStop();
-        if (feedAdapter != null) {
-            feedAdapter.removeOnImageZoomListener();
-            feedAdapter.removeOpenCommentsDialogListener();
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (twitterFeedAdapter != null) {
+            twitterFeedAdapter.removeOnImageZoomListener();
         }
     }
+
 }
